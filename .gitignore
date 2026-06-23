@@ -1,0 +1,21 @@
+# Secrets / environment
+.env
+
+# SQLite databases
+*.db
+*.db-journal
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Node (webapp tooling, if any)
+node_modules/
+
+# Logs
+logs/
+
+# OS junk
+.DS_Store
+Thumbs.db

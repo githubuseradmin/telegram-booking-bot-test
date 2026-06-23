@@ -1,0 +1,78 @@
+:root {
+  /* Подхватываем тему Telegram, с запасными значениями для обычного браузера */
+  --bg: var(--tg-theme-bg-color, #f5f6f8);
+  --card: var(--tg-theme-secondary-bg-color, #ffffff);
+  --text: var(--tg-theme-text-color, #11181c);
+  --hint: var(--tg-theme-hint-color, #8a929b);
+  --accent: var(--tg-theme-button-color, #8e44ec);
+  --accent-text: var(--tg-theme-button-text-color, #ffffff);
+  --radius: 14px;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding-bottom: 90px;
+}
+.hdr {
+  position: sticky; top: 0; z-index: 5;
+  background: linear-gradient(135deg, var(--accent), #c86bf0);
+  color: #fff; padding: 18px 16px 12px; border-radius: 0 0 18px 18px;
+}
+.hdr__title { font-size: 19px; font-weight: 700; }
+.hdr__sub { font-size: 13px; opacity: .9; margin-top: 2px; }
+.progress { height: 5px; background: rgba(255,255,255,.3); border-radius: 4px; margin-top: 10px; overflow: hidden; }
+.progress__bar { height: 100%; background: #fff; border-radius: 4px; transition: width .3s ease; }
+
+.wrap { padding: 16px; }
+.step.hidden { display: none; }
+.h { font-size: 15px; color: var(--hint); margin: 4px 0 12px; font-weight: 600; }
+
+.list { display: flex; flex-direction: column; gap: 10px; }
+.item {
+  background: var(--card); border: 2px solid transparent; border-radius: var(--radius);
+  padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;
+  cursor: pointer; transition: transform .08s, border-color .15s; gap: 10px;
+}
+.item:active { transform: scale(.98); }
+.item.sel { border-color: var(--accent); }
+.item__name { font-weight: 600; }
+.item__meta { font-size: 13px; color: var(--hint); margin-top: 2px; }
+.item__price { font-weight: 700; color: var(--accent); white-space: nowrap; }
+
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; }
+.chip {
+  background: var(--card); border: 2px solid transparent; border-radius: 12px;
+  padding: 10px 12px; text-align: center; cursor: pointer; flex: 0 0 auto; min-width: 64px;
+}
+.chip.sel { border-color: var(--accent); }
+.chip__d { font-size: 18px; font-weight: 700; }
+.chip__m { font-size: 11px; color: var(--hint); }
+
+.slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
+.slot {
+  background: var(--card); border: 2px solid transparent; border-radius: 10px;
+  padding: 12px 0; text-align: center; font-weight: 600; cursor: pointer;
+}
+.slot.sel { border-color: var(--accent); background: var(--accent); color: var(--accent-text); }
+
+.fld { display: block; margin-bottom: 14px; }
+.fld span { display: block; font-size: 13px; color: var(--hint); margin-bottom: 6px; }
+.fld input {
+  width: 100%; background: var(--card); border: 1px solid #e1e4e8; color: var(--text);
+  border-radius: 10px; padding: 13px 14px; font-size: 16px; outline: none;
+}
+.fld input:focus { border-color: var(--accent); }
+.summary {
+  background: var(--card); border-radius: var(--radius); padding: 14px 16px;
+  font-size: 14px; line-height: 1.7; margin-top: 8px;
+}
+.summary b { color: var(--accent); }
+
+.mainbtn {
+  position: fixed; left: 16px; right: 16px; bottom: 16px;
+  background: var(--accent); color: var(--accent-text); border: 0; border-radius: 12px;
+  padding: 15px; font-size: 16px; font-weight: 700; cursor: pointer;
+}
+.mainbtn[disabled] { opacity: .5; }
+.tg-mode .mainbtn { display: none; }  /* внутри Telegram используем нативную MainButton */

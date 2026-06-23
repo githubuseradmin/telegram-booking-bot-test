@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Запись · Салон красоты «Пример»</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hdr">
+    <div class="hdr__title" id="bizName">Салон красоты «Пример»</div>
+    <div class="hdr__sub" id="stepHint">Шаг 1 из 4 · выберите услугу</div>
+    <div class="progress"><div class="progress__bar" id="bar" style="width:25%"></div></div>
+  </header>
+
+  <main class="wrap">
+    <!-- Шаг 1: услуги -->
+    <section class="step" id="step-service">
+      <h2 class="h">Услуга</h2>
+      <div class="list" id="services"></div>
+    </section>
+
+    <!-- Шаг 2: мастер -->
+    <section class="step hidden" id="step-master">
+      <h2 class="h">Мастер</h2>
+      <div class="list" id="masters"></div>
+    </section>
+
+    <!-- Шаг 3: дата + время -->
+    <section class="step hidden" id="step-when">
+      <h2 class="h">Когда удобно?</h2>
+      <div class="chips" id="dates"></div>
+      <div class="slots" id="times"></div>
+    </section>
+
+    <!-- Шаг 4: контакты -->
+    <section class="step hidden" id="step-contact">
+      <h2 class="h">Ваши контакты</h2>
+      <label class="fld"><span>Имя</span><input id="name" placeholder="Как к вам обращаться"></label>
+      <label class="fld"><span>Телефон</span><input id="phone" inputmode="tel" placeholder="+375 (29) ..."></label>
+      <div class="summary" id="summary"></div>
+    </section>
+
+    <!-- запасная кнопка для браузера (вне Telegram MainButton скрыт) -->
+    <button class="mainbtn" id="fallbackBtn" type="button">Далее</button>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
