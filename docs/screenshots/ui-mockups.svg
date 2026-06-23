@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1140" height="640" viewBox="0 0 1140 640" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8e44ec"/><stop offset="1" stop-color="#c86bf0"/>
+    </linearGradient>
+    <clipPath id="phone"><rect x="0" y="0" width="260" height="560" rx="22"/></clipPath>
+    <style>
+      .card{fill:#fff}
+      .name{font-size:12px;font-weight:600;fill:#11181c}
+      .meta{font-size:9px;fill:#8a929b}
+      .price{font-size:12px;font-weight:700;fill:#8e44ec}
+      .h{font-size:11px;font-weight:600;fill:#8a929b}
+      .ttl{font-size:13px;font-weight:700;fill:#fff}
+      .sub{font-size:9.5px;fill:#fff;opacity:.9}
+      .cap{font-size:13px;font-weight:700;fill:#11181c}
+    </style>
+  </defs>
+
+  <rect width="1140" height="640" fill="#eceef1"/>
+  <text x="20" y="26" class="cap" font-size="15">Telegram Mini App — сценарий записи (реальные экраны)</text>
+
+  <!-- ===== Phone 1: Услуги ===== -->
+  <g transform="translate(20,40)">
+    <g clip-path="url(#phone)">
+      <rect width="260" height="560" fill="#f5f6f8"/>
+      <path d="M0,22 a22,22 0 0 1 22,-22 h216 a22,22 0 0 1 22,22 v48 h-260 z" fill="url(#g)"/>
+      <text x="16" y="26" class="ttl">Салон красоты «Пример»</text>
+      <text x="16" y="44" class="sub">Шаг 1 из 4 · выберите услугу</text>
+      <rect x="16" y="55" width="228" height="5" rx="2" fill="#ffffff4d"/>
+      <rect x="16" y="55" width="57" height="5" rx="2" fill="#fff"/>
+      <text x="14" y="92" class="h">Услуга</text>
+      <!-- карточки услуг -->
+      <g>
+        <rect x="12" y="100" width="236" height="44" rx="12" class="card"/>
+        <text x="26" y="120" class="name">Мужская стрижка</text><text x="26" y="134" class="meta">~60 мин</text>
+        <text x="234" y="127" text-anchor="end" class="price">25 BYN</text>
+        <rect x="12" y="150" width="236" height="44" rx="12" class="card" stroke="#8e44ec" stroke-width="2"/>
+        <text x="26" y="170" class="name">Женская стрижка</text><text x="26" y="184" class="meta">~90 мин</text>
+        <text x="234" y="177" text-anchor="end" class="price">40 BYN</text>
+        <rect x="12" y="200" width="236" height="44" rx="12" class="card"/>
+        <text x="26" y="220" class="name">Окрашивание</text><text x="26" y="234" class="meta">~120 мин</text>
+        <text x="234" y="227" text-anchor="end" class="price">90 BYN</text>
+        <rect x="12" y="250" width="236" height="44" rx="12" class="card"/>
+        <text x="26" y="270" class="name">Маникюр с покрытием</text><text x="26" y="284" class="meta">~90 мин</text>
+        <text x="234" y="277" text-anchor="end" class="price">35 BYN</text>
+        <rect x="12" y="300" width="236" height="44" rx="12" class="card"/>
+        <text x="26" y="320" class="name">Коррекция бровей</text><text x="26" y="334" class="meta">~30 мин</text>
+        <text x="234" y="327" text-anchor="end" class="price">20 BYN</text>
+      </g>
+    </g>
+    <rect width="260" height="560" rx="22" fill="none" stroke="#dfe3e8"/>
+  </g>
+
+  <!-- ===== Phone 2: Мастер ===== -->
+  <g transform="translate(300,40)">
+    <g clip-path="url(#phone)">
+      <rect width="260" height="560" fill="#f5f6f8"/>
+      <path d="M0,22 a22,22 0 0 1 22,-22 h216 a22,22 0 0 1 22,22 v48 h-260 z" fill="url(#g)"/>
+      <text x="16" y="26" class="ttl">Салон красоты «Пример»</text>
+      <text x="16" y="44" class="sub">Шаг 2 из 4 · выберите мастера</text>
+      <rect x="16" y="55" width="228" height="5" rx="2" fill="#ffffff4d"/>
+      <rect x="16" y="55" width="114" height="5" rx="2" fill="#fff"/>
+      <text x="14" y="92" class="h">Мастер</text>
+      <rect x="12" y="100" width="236" height="46" rx="12" class="card"/>
+      <text x="26" y="128" class="name">💇‍♀️ Анна</text>
+      <rect x="12" y="152" width="236" height="46" rx="12" class="card"/>
+      <text x="26" y="180" class="name">💅 Лена</text>
+      <rect x="12" y="204" width="236" height="46" rx="12" class="card" stroke="#8e44ec" stroke-width="2"/>
+      <text x="26" y="232" class="name">🙋 Любой мастер</text>
+    </g>
+    <rect width="260" height="560" rx="22" fill="none" stroke="#dfe3e8"/>
+  </g>
+
+  <!-- ===== Phone 3: Дата и время ===== -->
+  <g transform="translate(580,40)">
+    <g clip-path="url(#phone)">
+      <rect width="260" height="560" fill="#f5f6f8"/>
+      <path d="M0,22 a22,22 0 0 1 22,-22 h216 a22,22 0 0 1 22,22 v48 h-260 z" fill="url(#g)"/>
+      <text x="16" y="26" class="ttl">Салон красоты «Пример»</text>
+      <text x="16" y="44" class="sub">Шаг 3 из 4 · дата и время</text>
+      <rect x="16" y="55" width="228" height="5" rx="2" fill="#ffffff4d"/>
+      <rect x="16" y="55" width="171" height="5" rx="2" fill="#fff"/>
+      <text x="14" y="92" class="h">Когда удобно?</text>
+      <!-- даты -->
+      <g font-size="14" font-weight="700" fill="#11181c">
+        <rect x="12" y="100" width="52" height="46" rx="10" class="card"/><text x="38" y="124" text-anchor="middle">23</text><text x="38" y="138" text-anchor="middle" class="meta">июн·Вт</text>
+        <rect x="70" y="100" width="52" height="46" rx="10" class="card" stroke="#8e44ec" stroke-width="2"/><text x="96" y="124" text-anchor="middle">24</text><text x="96" y="138" text-anchor="middle" class="meta">июн·Ср</text>
+        <rect x="128" y="100" width="52" height="46" rx="10" class="card"/><text x="154" y="124" text-anchor="middle">25</text><text x="154" y="138" text-anchor="middle" class="meta">июн·Чт</text>
+        <rect x="186" y="100" width="52" height="46" rx="10" class="card"/><text x="212" y="124" text-anchor="middle">26</text><text x="212" y="138" text-anchor="middle" class="meta">июн·Пт</text>
+      </g>
+      <!-- слоты -->
+      <g font-size="12" font-weight="600">
+        <rect x="12" y="162" width="52" height="38" rx="10" class="card"/><text x="38" y="186" text-anchor="middle" fill="#11181c">10:00</text>
+        <rect x="70" y="162" width="52" height="38" rx="10" class="card"/><text x="96" y="186" text-anchor="middle" fill="#11181c">11:00</text>
+        <rect x="128" y="162" width="52" height="38" rx="10" fill="#8e44ec"/><text x="154" y="186" text-anchor="middle" fill="#fff">12:00</text>
+        <rect x="186" y="162" width="52" height="38" rx="10" class="card"/><text x="212" y="186" text-anchor="middle" fill="#11181c">13:00</text>
+        <rect x="12" y="206" width="52" height="38" rx="10" class="card"/><text x="38" y="230" text-anchor="middle" fill="#11181c">14:00</text>
+        <rect x="70" y="206" width="52" height="38" rx="10" class="card"/><text x="96" y="230" text-anchor="middle" fill="#11181c">15:00</text>
+        <rect x="128" y="206" width="52" height="38" rx="10" class="card"/><text x="154" y="230" text-anchor="middle" fill="#11181c">16:00</text>
+        <rect x="186" y="206" width="52" height="38" rx="10" class="card"/><text x="212" y="230" text-anchor="middle" fill="#11181c">17:00</text>
+      </g>
+    </g>
+    <rect width="260" height="560" rx="22" fill="none" stroke="#dfe3e8"/>
+  </g>
+
+  <!-- ===== Phone 4: Контакты ===== -->
+  <g transform="translate(860,40)">
+    <g clip-path="url(#phone)">
+      <rect width="260" height="560" fill="#f5f6f8"/>
+      <path d="M0,22 a22,22 0 0 1 22,-22 h216 a22,22 0 0 1 22,22 v48 h-260 z" fill="url(#g)"/>
+      <text x="16" y="26" class="ttl">Салон красоты «Пример»</text>
+      <text x="16" y="44" class="sub">Шаг 4 из 4 · контакты</text>
+      <rect x="16" y="55" width="228" height="5" rx="2" fill="#fff"/>
+      <text x="14" y="92" class="h">Ваши контакты</text>
+      <text x="14" y="112" class="meta">Имя</text>
+      <rect x="12" y="118" width="236" height="38" rx="10" class="card" stroke="#e1e4e8"/>
+      <text x="26" y="142" class="name" font-size="13">Илья</text>
+      <text x="14" y="176" class="meta">Телефон</text>
+      <rect x="12" y="182" width="236" height="38" rx="10" class="card" stroke="#e1e4e8"/>
+      <text x="26" y="206" class="name" font-size="13">+375 29 123-45-67</text>
+      <!-- сводка -->
+      <rect x="12" y="234" width="236" height="92" rx="12" class="card"/>
+      <text x="26" y="256" font-size="11.5" font-weight="600" fill="#8e44ec">💇 Женская стрижка</text>
+      <text x="26" y="276" font-size="11" fill="#11181c">👩‍🔧 Мастер: <tspan fill="#8e44ec" font-weight="700">Любой</tspan></text>
+      <text x="26" y="296" font-size="11" font-weight="700" fill="#8e44ec">🗓 24.06.2026 в 12:00</text>
+      <text x="26" y="316" font-size="11" font-weight="700" fill="#8e44ec">💰 40 BYN</text>
+      <!-- кнопка -->
+      <rect x="12" y="500" width="236" height="44" rx="12" fill="#8e44ec"/>
+      <text x="130" y="528" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">Записаться 🎉</text>
+    </g>
+    <rect width="260" height="560" rx="22" fill="none" stroke="#dfe3e8"/>
+  </g>
+</svg>
