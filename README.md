@@ -14,21 +14,23 @@ A self-service appointment-booking bot for a salon / barbershop / studio / cafe.
 - Chat-based booking flow: service -> master -> day -> free time -> name -> phone -> confirm.
 - **Telegram Mini App** — the same flow in a polished visual UI (auto Telegram theme, progress bar, native main button).
 - Pick a master (or "any"); free slots are computed from master load.
-- "My bookings": **reschedule** and cancel.
+- "My bookings": **reschedule** and cancel (optionally locked within a few hours of the visit).
 - Automatic reminder before the visit.
 - Post-visit rating request (1–5) + optional comment.
 - Loyalty counter (bonus every Nth visit).
 
 **For the admin** (`/admin`)
+- **Today view** — mark each visit ✅ done · 🚫 no-show · ❌ cancel (attendance tracking).
 - List of upcoming bookings + cancel (the client is notified).
+- **Instant notifications** on every new booking — and on client cancellations / reschedules.
 - Stats: bookings today / last 7 days, revenue forecast, top service, average rating.
 - Broadcast / promo message to all clients.
-- Instant notification on every new booking.
 
 **Under the hood**
-- Double-booking protection (the slot is re-checked on the backend before saving).
+- **Conflict-free booking** — slots are guarded by partial `UNIQUE` indexes over *active* rows, so a double-booking is rejected **atomically by the database** (no "check-then-insert" race). Reschedules onto a taken slot are rejected the same way.
+- **Explicit booking lifecycle** (`active → completed / cancelled / no_show`, see [lifecycle.py](lifecycle.py)): past visits auto-complete after a grace period, which drives the loyalty counter and post-visit feedback — and means no feedback is requested for no-shows or cancellations.
 - The time grid is built from working hours/days; busy and past slots are hidden.
-- Everything (services, prices, hours, masters, loyalty) is configured in [config.py](config.py) — no code edits needed.
+- Everything (services, prices, hours, masters, loyalty, grace/cancellation cutoff) is configured in [config.py](config.py) — no code edits needed.
 
 ## Architecture at a glance
 
@@ -85,7 +87,7 @@ For production, run `python bot.py` under a process manager so it restarts on cr
 ```bash
 python tests_smoke.py
 ```
-Exercises the schedule, master capacity, the "any master" assignment, and DB aggregates against a temporary database.
+Exercises the schedule, master capacity, the "any master" assignment, DB aggregates, the **double-booking guard**, and the **lifecycle / auto-complete** against a temporary database.
 
 ## Deploy the Mini App (`webapp/`)
 
@@ -133,7 +135,8 @@ A **"Записаться в приложении"** ("Book in the app") button 
 | `bot.py` | Handlers, FSM, reschedule, ratings, admin panel, Mini App intake |
 | `config.py` | Services, prices, hours, days, masters, loyalty, `WEBAPP_URL` |
 | `slots.py` | Pure free-slot logic (unit-testable) |
-| `db.py` | SQLite + schema migration |
+| `lifecycle.py` | Booking status state-machine (active / completed / cancelled / no_show) |
+| `db.py` | SQLite + schema migration + atomic conflict guard |
 | `keyboards.py` / `texts.py` | Keyboards / message texts |
 | `reminders.py` | Reminders + post-visit rating (APScheduler) |
 | `security.py` | `initData` validation (for the Mini App backend API) |

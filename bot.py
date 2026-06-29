@@ -22,6 +22,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import config
 import db
 import keyboards as kb
+import lifecycle
 import texts
 from config import master_by_id, masters_for, service_by_id
 from reminders import send_due_feedback, send_due_reminders
@@ -69,6 +70,27 @@ def _slot_master(master_choice) -> "str | None":
     return None if master_choice in (None, "any") else master_choice
 
 
+async def _notify_admins(bot, text: str) -> None:
+    """Разослать уведомление всем администраторам (best-effort)."""
+    for admin_id in config.ADMIN_IDS:
+        try:
+            await bot.send_message(admin_id, text)
+        except Exception as e:
+            logging.warning("Админу %s не доставлено: %s", admin_id, e)
+
+
+def _change_locked(slot_iso: str) -> bool:
+    """True, если до визита меньше CLIENT_CHANGE_CUTOFF_HOURS — самим менять нельзя."""
+    from datetime import datetime, timedelta
+    if config.CLIENT_CHANGE_CUTOFF_HOURS <= 0:
+        return False
+    try:
+        slot_dt = datetime.fromisoformat(slot_iso)
+    except ValueError:
+        return False
+    return slot_dt - datetime.now() < timedelta(hours=config.CLIENT_CHANGE_CUTOFF_HOURS)
+
+
 async def _create_booking(bot, user, service_id, master_choice, date_str, label,
                           name, phone) -> "tuple[bool, str, object]":
     """Общая логика создания записи (из чата и из Mini App). Возвращает (ok, err, row)."""
@@ -87,12 +109,10 @@ async def _create_booking(bot, user, service_id, master_choice, date_str, label,
     slot = f"{date_str}T{label}"
     booking_id = db.add_booking(user.id, user.username, name, phone,
                                 service_id, master_final, slot)
+    if booking_id is None:                      # слот атомарно заняли между проверкой и вставкой
+        return False, "Это время только что заняли — выберите другое.", None
     row = db.get_booking(booking_id)
-    for admin_id in config.ADMIN_IDS:           # уведомляем администратора(ов)
-        try:
-            await bot.send_message(admin_id, texts.admin_new_booking(row))
-        except Exception as e:
-            logging.warning("Админу %s не доставлено: %s", admin_id, e)
+    await _notify_admins(bot, texts.admin_new_booking(row))
     return True, "", row
 
 
@@ -283,7 +303,14 @@ async def my_bookings(cb: CallbackQuery, state: FSMContext) -> None:
 @router.callback_query(F.data.startswith("ucancel:"))
 async def user_cancel(cb: CallbackQuery, state: FSMContext) -> None:
     booking_id = int(cb.data.split(":", 1)[1])
+    row = db.get_booking(booking_id)
+    if row and row["user_id"] == cb.from_user.id and _change_locked(row["slot"]):
+        return await cb.answer(
+            f"До визита менее {config.CLIENT_CHANGE_CUTOFF_HOURS} ч — "
+            f"позвоните нам: {config.BUSINESS_PHONE}", show_alert=True)
     ok = db.cancel_booking(booking_id, user_id=cb.from_user.id)
+    if ok and row:                              # сообщаем персоналу об отмене
+        await _notify_admins(cb.bot, texts.admin_booking_cancelled(row))
     await cb.answer("Запись отменена" if ok else "Не получилось", show_alert=not ok)
     await my_bookings(cb, state)
 
@@ -292,10 +319,15 @@ async def user_cancel(cb: CallbackQuery, state: FSMContext) -> None:
 async def reschedule_start(cb: CallbackQuery, state: FSMContext) -> None:
     booking_id = int(cb.data.split(":", 1)[1])
     b = db.get_booking(booking_id)
-    if not b or b["user_id"] != cb.from_user.id or b["status"] != "active":
+    if not b or b["user_id"] != cb.from_user.id or b["status"] != lifecycle.ACTIVE:
         return await cb.answer("Запись недоступна", show_alert=True)
+    if _change_locked(b["slot"]):
+        return await cb.answer(
+            f"До визита менее {config.CLIENT_CHANGE_CUTOFF_HOURS} ч — "
+            f"позвоните нам: {config.BUSINESS_PHONE}", show_alert=True)
     await state.set_state(Reschedule.date)
-    await state.update_data(rid=booking_id, service_id=b["service_id"], master=b["master_id"])
+    await state.update_data(rid=booking_id, service_id=b["service_id"],
+                            master=b["master_id"], old_slot=b["slot"])
     await _safe_edit(cb, "Новый день:", kb.dates_kb(back="menu:my"))
     await cb.answer()
 
@@ -319,12 +351,19 @@ async def reschedule_date(cb: CallbackQuery, state: FSMContext) -> None:
 async def reschedule_time(cb: CallbackQuery, state: FSMContext) -> None:
     label = cb.data.split(":", 1)[1]
     data = await state.get_data()
+    new_slot = f"{data['date']}T{label}"
     if label not in kb.free_slots(data["date"], data["service_id"],
                                   _slot_master(data.get("master"))):
         return await cb.answer("Время уже заняли", show_alert=True)
-    db.reschedule_booking(data["rid"], cb.from_user.id, f"{data['date']}T{label}")
+    ok = db.reschedule_booking(data["rid"], cb.from_user.id, new_slot)
+    if not ok:                                  # слот атомарно заняли в момент переноса
+        return await cb.answer("Это время только что заняли — выберите другое",
+                               show_alert=True)
     await state.clear()
-    await _safe_edit(cb, f"🔁 Запись перенесена на {texts.fmt_dt(data['date'] + 'T' + label)}.",
+    row = db.get_booking(data["rid"])
+    if row and data.get("old_slot"):            # сообщаем персоналу о переносе
+        await _notify_admins(cb.bot, texts.admin_booking_rescheduled(row, data["old_slot"]))
+    await _safe_edit(cb, f"🔁 Запись перенесена на {texts.fmt_dt(new_slot)}.",
                      kb.main_menu())
     await cb.answer("Перенесено")
 
@@ -414,6 +453,70 @@ async def admin_cancel(cb: CallbackQuery, bot: Bot) -> None:
         except Exception:
             pass
     await admin_list(cb)
+
+
+@router.callback_query(F.data == "adm:today")
+async def admin_today(cb: CallbackQuery) -> None:
+    """Записи на сегодня с отметкой посещаемости (визит / неявка / отмена)."""
+    if not is_admin(cb.from_user.id):
+        return await cb.answer()
+    from datetime import date
+    db.complete_due(config.ATTENDANCE_GRACE_MINUTES)
+    rows = db.active_on_day(date.today().isoformat())
+    if not rows:
+        await _safe_edit(cb, "На сегодня активных записей нет.", kb.admin_menu_kb())
+        return await cb.answer()
+    lines = ["<b>Записи на сегодня</b>",
+             "Отметьте: ✅ пришёл · 🚫 неявка · ❌ отмена\n"]
+    for b in rows:
+        svc = service_by_id(b["service_id"])
+        m = master_by_id(b["master_id"]) if b["master_id"] else None
+        uname = f"@{b['username']}" if b["username"] else "—"
+        lines.append(f"№{b['id']} · {texts.fmt_dt(b['slot'])} · "
+                     f"{svc.name if svc else b['service_id']}"
+                     f"{(' · ' + m.name) if m else ''} · "
+                     f"{b['client_name']} {uname} · {b['phone']}")
+    await _safe_edit(cb, "\n".join(lines), kb.admin_today_kb(rows))
+    await cb.answer()
+
+
+@router.callback_query(F.data.startswith("acomplete:"))
+async def admin_complete(cb: CallbackQuery) -> None:
+    if not is_admin(cb.from_user.id):
+        return await cb.answer()
+    ok = db.set_status(int(cb.data.split(":", 1)[1]), lifecycle.COMPLETED)
+    await cb.answer("Визит отмечен как состоявшийся ✅" if ok else "Уже неактивно")
+    await admin_today(cb)
+
+
+@router.callback_query(F.data.startswith("anoshow:"))
+async def admin_no_show(cb: CallbackQuery) -> None:
+    if not is_admin(cb.from_user.id):
+        return await cb.answer()
+    ok = db.set_status(int(cb.data.split(":", 1)[1]), lifecycle.NO_SHOW)
+    await cb.answer("Отмечено как неявка 🚫" if ok else "Уже неактивно")
+    await admin_today(cb)
+
+
+@router.callback_query(F.data.startswith("atcancel:"))
+async def admin_today_cancel(cb: CallbackQuery, bot: Bot) -> None:
+    if not is_admin(cb.from_user.id):
+        return await cb.answer()
+    booking_id = int(cb.data.split(":", 1)[1])
+    row = db.get_booking(booking_id)
+    ok = db.cancel_booking(booking_id)
+    await cb.answer("Отменено" if ok else "Уже неактивно")
+    if ok and row:
+        svc = service_by_id(row["service_id"])
+        try:
+            await bot.send_message(
+                row["user_id"],
+                f"❗️Ваша запись ({svc.name if svc else ''} — "
+                f"{texts.fmt_dt(row['slot'])}) отменена администратором. "
+                f"Свяжитесь с нами: {config.BUSINESS_PHONE}")
+        except Exception:
+            pass
+    await admin_today(cb)
 
 
 @router.callback_query(F.data == "adm:stats")

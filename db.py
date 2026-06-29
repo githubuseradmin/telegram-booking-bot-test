@@ -60,19 +60,43 @@ def init_db() -> None:
             if col not in existing:
                 c.execute(f"ALTER TABLE bookings ADD COLUMN {col} {decl}")
 
+        # Защита от двойной брони на уровне БД (атомарно, без гонок):
+        # частичные UNIQUE-индексы только по АКТИВНЫМ записям. Отмена/завершение
+        # выводят запись из индекса и освобождают слот.
+        #   * с мастерами   — уникальна пара (слот, мастер);
+        #   * один поток     — уникален сам слот (master_id IS NULL).
+        # NULL в SQLite считаются различными, поэтому два отдельных индекса.
+        for ddl in (
+            "CREATE UNIQUE INDEX IF NOT EXISTS ux_active_slot_master "
+            "ON bookings(slot, master_id) WHERE status='active' AND master_id IS NOT NULL",
+            "CREATE UNIQUE INDEX IF NOT EXISTS ux_active_slot_single "
+            "ON bookings(slot) WHERE status='active' AND master_id IS NULL",
+        ):
+            try:
+                c.execute(ddl)
+            except sqlite3.IntegrityError:
+                # В старой БД уже есть дубли активных записей на один слот —
+                # не валим запуск; индекс начнёт защищать после ручной чистки.
+                pass
+
 
 def add_booking(user_id, username, client_name, phone,
-                service_id, master_id, slot_iso) -> int:
-    with _db() as c:
-        cur = c.execute(
-            """INSERT INTO bookings
-               (user_id, username, client_name, phone, service_id, master_id,
-                slot, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            (user_id, username, client_name, phone, service_id, master_id, slot_iso,
-             datetime.now().isoformat(timespec="seconds")),
-        )
-        return cur.lastrowid
+                service_id, master_id, slot_iso) -> "int | None":
+    """Создать запись. Возвращает id или None, если слот только что заняли
+    (конфликт ловится атомарно UNIQUE-индексом, без гонки 'проверил-вставил')."""
+    try:
+        with _db() as c:
+            cur = c.execute(
+                """INSERT INTO bookings
+                   (user_id, username, client_name, phone, service_id, master_id,
+                    slot, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (user_id, username, client_name, phone, service_id, master_id, slot_iso,
+                 datetime.now().isoformat(timespec="seconds")),
+            )
+            return cur.lastrowid
+    except sqlite3.IntegrityError:
+        return None
 
 
 def active_bookings_on(date_str: str) -> list[sqlite3.Row]:
@@ -127,14 +151,56 @@ def cancel_booking(booking_id: int, user_id: "int | None" = None) -> bool:
 
 
 def reschedule_booking(booking_id: int, user_id: int, new_slot: str) -> bool:
-    """Перенос записи на новый слот (сбрасывает флаг напоминания)."""
+    """Перенос записи на новый слот (сбрасывает флаг напоминания).
+
+    Возвращает False, если слот занят (UNIQUE-индекс) или запись недоступна."""
+    try:
+        with _db() as c:
+            cur = c.execute(
+                "UPDATE bookings SET slot=?, reminded=0 "
+                "WHERE id=? AND user_id=? AND status='active'",
+                (new_slot, booking_id, user_id),
+            )
+            return cur.rowcount > 0
+    except sqlite3.IntegrityError:
+        return False
+
+
+def set_status(booking_id: int, new_status: str) -> bool:
+    """Перевести АКТИВНУЮ запись в терминальный статус (completed/cancelled/no_show).
+
+    Гард `status='active'` гарантирует корректность переходов на уровне SQL."""
     with _db() as c:
         cur = c.execute(
-            "UPDATE bookings SET slot=?, reminded=0 "
-            "WHERE id=? AND user_id=? AND status='active'",
-            (new_slot, booking_id, user_id),
+            "UPDATE bookings SET status=? WHERE id=? AND status='active'",
+            (new_status, booking_id),
         )
         return cur.rowcount > 0
+
+
+def complete_due(grace_minutes: int) -> int:
+    """Авто-завершение: активные визиты, начавшиеся раньше (now - grace),
+    переводятся в 'completed'. Возвращает число обновлённых записей."""
+    from datetime import timedelta
+    threshold = (datetime.now() - timedelta(minutes=grace_minutes)).isoformat(
+        timespec="minutes"
+    )
+    with _db() as c:
+        cur = c.execute(
+            "UPDATE bookings SET status='completed' "
+            "WHERE status='active' AND slot<=?",
+            (threshold,),
+        )
+        return cur.rowcount
+
+
+def active_on_day(date_str: str) -> list[sqlite3.Row]:
+    """Все активные записи на дату 'YYYY-MM-DD' (прошедшие и будущие) — для админ-вида «сегодня»."""
+    with _db() as c:
+        return c.execute(
+            "SELECT * FROM bookings WHERE status='active' AND slot LIKE ? ORDER BY slot",
+            (f"{date_str}T%",),
+        ).fetchall()
 
 
 # --- Напоминания ---
@@ -153,13 +219,13 @@ def mark_reminded(booking_id: int) -> None:
 
 
 # --- Отзывы/оценки ---
-def due_feedback(before_iso: str) -> list[sqlite3.Row]:
-    """Завершённые визиты (время прошло), у которых ещё не спросили оценку."""
+def due_feedback() -> list[sqlite3.Row]:
+    """Завершённые визиты (status='completed'), у которых ещё не спросили оценку.
+
+    Отмены и неявки сюда не попадают — спрашиваем отзыв только о состоявшихся."""
     with _db() as c:
         return c.execute(
-            """SELECT * FROM bookings
-               WHERE status='active' AND feedback_asked=0 AND slot<=?""",
-            (before_iso,),
+            "SELECT * FROM bookings WHERE status='completed' AND feedback_asked=0",
         ).fetchall()
 
 
@@ -187,13 +253,11 @@ def set_feedback_text(booking_id: int, user_id: int, text: str) -> None:
 
 # --- Лояльность / рассылка / статистика ---
 def completed_visits(user_id: int) -> int:
-    """Сколько визитов клиент уже совершил (для счётчика лояльности)."""
-    now = datetime.now().isoformat(timespec="minutes")
+    """Сколько визитов клиент реально совершил (status='completed') — для лояльности."""
     with _db() as c:
         row = c.execute(
-            "SELECT COUNT(*) n FROM bookings "
-            "WHERE user_id=? AND status='active' AND slot<=?",
-            (user_id, now),
+            "SELECT COUNT(*) n FROM bookings WHERE user_id=? AND status='completed'",
+            (user_id,),
         ).fetchone()
     return row["n"]
 

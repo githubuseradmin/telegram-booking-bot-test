@@ -75,6 +75,32 @@ def admin_new_booking(b) -> str:
     )
 
 
+def admin_booking_cancelled(b) -> str:
+    svc = config.service_by_id(b["service_id"])
+    uname = f"@{b['username']}" if b["username"] else "—"
+    return (
+        "🚫 <b>Клиент отменил запись</b>\n\n"
+        f"💇 {svc.name if svc else b['service_id']}"
+        f"{_master_line(b['master_id'])}\n"
+        f"🗓 {fmt_dt(b['slot'])}\n"
+        f"👤 {b['client_name']} ({uname})\n"
+        f"📞 {b['phone']}"
+    )
+
+
+def admin_booking_rescheduled(b, old_slot) -> str:
+    svc = config.service_by_id(b["service_id"])
+    uname = f"@{b['username']}" if b["username"] else "—"
+    return (
+        "🔁 <b>Клиент перенёс запись</b>\n\n"
+        f"💇 {svc.name if svc else b['service_id']}"
+        f"{_master_line(b['master_id'])}\n"
+        f"🗓 {fmt_dt(old_slot)} → <b>{fmt_dt(b['slot'])}</b>\n"
+        f"👤 {b['client_name']} ({uname})\n"
+        f"📞 {b['phone']}"
+    )
+
+
 def reminder(service_name, master_id, slot_iso) -> str:
     return (
         "⏰ <b>Напоминание о записи</b>\n\n"

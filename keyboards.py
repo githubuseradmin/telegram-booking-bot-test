@@ -109,6 +109,7 @@ def rating_kb(booking_id: int) -> InlineKeyboardMarkup:
 # ---------- Админ ----------
 def admin_menu_kb() -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
+    kb.button(text="🗓 Сегодня", callback_data="adm:today")
     kb.button(text="📋 Записи", callback_data="adm:list")
     kb.button(text="📊 Статистика", callback_data="adm:stats")
     kb.button(text="📣 Рассылка", callback_data="adm:cast")
@@ -122,4 +123,16 @@ def admin_bookings_kb(rows) -> InlineKeyboardMarkup:
         kb.button(text=f"❌ Отменить №{b['id']}", callback_data=f"acancel:{b['id']}")
     kb.button(text="« В меню", callback_data="adm:menu")
     kb.adjust(1)
+    return kb.as_markup()
+
+
+def admin_today_kb(rows) -> InlineKeyboardMarkup:
+    """Отметка посещаемости на сегодня: визит состоялся / неявка / отмена."""
+    kb = InlineKeyboardBuilder()
+    for b in rows:
+        kb.button(text=f"✅ №{b['id']}", callback_data=f"acomplete:{b['id']}")
+        kb.button(text=f"🚫 №{b['id']}", callback_data=f"anoshow:{b['id']}")
+        kb.button(text=f"❌ №{b['id']}", callback_data=f"atcancel:{b['id']}")
+    kb.button(text="« В меню", callback_data="adm:menu")
+    kb.adjust(3)
     return kb.as_markup()

@@ -15,6 +15,8 @@ log = logging.getLogger(__name__)
 
 async def send_due_reminders(bot: Bot) -> None:
     """Напоминания клиентам, чьё время визита близко."""
+    # Заодно переводим прошедшие визиты в 'completed' (держим статусы свежими).
+    db.complete_due(config.ATTENDANCE_GRACE_MINUTES)
     now = datetime.now()
     until = now + timedelta(hours=config.REMINDER_HOURS_BEFORE)
     rows = db.due_reminders(now.isoformat(timespec="minutes"),
@@ -31,10 +33,11 @@ async def send_due_reminders(bot: Bot) -> None:
 
 
 async def send_due_feedback(bot: Bot) -> None:
-    """После визита (время прошло) — просим оценить. Только свежие визиты (до 2 дней)."""
+    """После завершённого визита — просим оценить. Только свежие визиты (до 2 дней)."""
+    db.complete_due(config.ATTENDANCE_GRACE_MINUTES)  # на случай, если reminders ещё не отработали
     now = datetime.now()
     lower = (now - timedelta(days=2)).isoformat(timespec="minutes")
-    rows = db.due_feedback(now.isoformat(timespec="minutes"))
+    rows = db.due_feedback()
     for b in rows:
         if b["slot"] < lower:               # слишком старое — не спамим
             db.mark_feedback_asked(b["id"])
